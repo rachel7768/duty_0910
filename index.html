@@ -1,305 +1,657 @@
-```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>청소당번 추첨</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR 코드 도우미 (스캔 & 생성)</title>
+    
+    <!-- QR 스캔(읽기) 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- QR 커스텀 생성 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
-    body {
-      margin: 0;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-    .container {
-      width: 92%;
-      max-width: 650px;
-    }
+        .container {
+            width: 100%;
+            max-width: 950px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    .card {
-      background: white;
-      border-radius: 25px;
-      padding: 35px 25px;
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-    }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-size: 1.8rem;
+        }
 
-    h1 {
-      margin: 0;
-      font-size: 32px;
-      color: #333;
-    }
+        .app-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
 
-    .subtitle {
-      margin: 10px 0 30px;
-      color: #777;
-      font-size: 17px;
-    }
+        @media (max-width: 768px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
-    .numbers {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 10px;
-      margin-bottom: 30px;
-    }
+        .card {
+            background: #fafbfc;
+            border: 1px solid #e1e8ed;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    .number {
-      padding: 13px 5px;
-      border-radius: 12px;
-      background: #f1f3f5;
-      font-size: 18px;
-      font-weight: bold;
-      color: #555;
-      transition: 0.2s;
-    }
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #34495e;
+        }
 
-    .number.selected {
-      background: #667eea;
-      color: white;
-      transform: scale(1.08);
-      box-shadow: 0 5px 15px rgba(102,126,234,0.4);
-    }
+        /* 1. QR 읽기 (붙여넣기 영역) 스타일 */
+        .paste-zone {
+            width: 100%;
+            height: 200px;
+            border: 2px dashed #a0aec0;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            text-align: center;
+            padding: 10px;
+        }
 
-    .draw-btn {
-      width: 100%;
-      padding: 18px;
-      border: none;
-      border-radius: 15px;
-      background: #667eea;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+        .paste-zone:focus, .paste-zone:hover {
+            border-color: #3182ce;
+            background-color: #ebf8ff;
+        }
 
-    .draw-btn:hover {
-      background: #5568d9;
-      transform: translateY(-2px);
-    }
+        .paste-zone p {
+            color: #718096;
+            font-size: 0.95rem;
+            pointer-events: none;
+        }
 
-    .result {
-      margin-top: 30px;
-      display: none;
-    }
+        .result-box {
+            width: 100%;
+            margin-top: 15px;
+            word-break: break-all;
+            text-align: center;
+            min-height: 40px;
+        }
 
-    .result.show {
-      display: block;
-    }
+        .result-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 16px;
+            background-color: #3182ce;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
 
-    .result-title {
-      font-size: 21px;
-      font-weight: bold;
-      color: #667eea;
-      margin-bottom: 15px;
-    }
+        .result-link:hover {
+            background-color: #2b6cb0;
+        }
 
-    .winners {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+        /* 2. QR 생성 스타일 및 커스텀 옵션 */
+        .input-group {
+            width: 100%;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
 
-    .winner {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 23px;
-      font-weight: bold;
-      box-shadow: 0 8px 20px rgba(102,126,234,0.35);
-      animation: pop 0.5s ease both;
-    }
+        input[type="text"], select {
+            padding: 10px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
 
-    .winner:nth-child(1) {
-      animation-delay: 0.1s;
-    }
+        input[type="text"] {
+            flex: 1;
+        }
 
-    .winner:nth-child(2) {
-      animation-delay: 0.2s;
-    }
+        input[type="text"]:focus, select:focus {
+            border-color: #3182ce;
+        }
 
-    .winner:nth-child(3) {
-      animation-delay: 0.3s;
-    }
+        button {
+            padding: 10px 16px;
+            background-color: #38a169;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-    .winner:nth-child(4) {
-      animation-delay: 0.4s;
-    }
+        button:hover {
+            background-color: #2f855a;
+        }
 
-    .winner:nth-child(5) {
-      animation-delay: 0.5s;
-    }
+        /* 커스텀 옵션 영역 */
+        .custom-options {
+            width: 100%;
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-    @keyframes pop {
-      from {
-        opacity: 0;
-        transform: scale(0);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
+        .option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
 
-    .reset-btn {
-      margin-top: 15px;
-      padding: 12px 25px;
-      border: none;
-      border-radius: 10px;
-      background: #eee;
-      color: #555;
-      cursor: pointer;
-      font-size: 15px;
-    }
+        .option-row label {
+            font-weight: 600;
+        }
 
-    @media (max-width: 500px) {
-      .numbers {
-        grid-template-columns: repeat(5, 1fr);
-      }
+        .color-inputs {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-      h1 {
-        font-size: 27px;
-      }
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
 
-      .winner {
-        width: 65px;
-        height: 65px;
-        font-size: 20px;
-      }
-    }
-  </style>
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+        }
+
+        /* 로고 입력 및 붙여넣기 박스 스타일 */
+        .logo-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+
+        .logo-paste-zone {
+            width: 160px;
+            padding: 6px 10px;
+            border: 1px dashed #a0aec0;
+            border-radius: 6px;
+            background-color: #fff;
+            color: #718096;
+            font-size: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .logo-paste-zone:focus, .logo-paste-zone:hover {
+            border-color: #3182ce;
+            background-color: #ebf8ff;
+            color: #2b6cb0;
+        }
+
+        .logo-status {
+            font-size: 0.75rem;
+            color: #38a169;
+            display: none;
+        }
+
+        .qr-output {
+            width: 180px;
+            height: 180px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .qr-output canvas, .qr-output svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* QR Action Buttons (복사, 다운로드) */
+        .qr-action-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-action {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .btn-copy {
+            background-color: #4a5568;
+        }
+        .btn-copy:hover {
+            background-color: #2d3748;
+        }
+
+        .btn-download {
+            background-color: #3182ce;
+        }
+        .btn-download:hover {
+            background-color: #2b6cb0;
+        }
+
+        /* 초기화 버튼 스타일 */
+        .reset-btn {
+            background-color: #e53e3e;
+            color: white;
+            padding: 12px 30px;
+            font-size: 1rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .reset-btn:hover {
+            background-color: #c53030;
+        }
+
+        .error-msg {
+            color: #e53e3e;
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .success-msg {
+            color: #38a169;
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+    </style>
 </head>
-
 <body>
 
-  <div class="container">
-    <div class="card">
-
-      <h1>🧹 청소당번 추첨</h1>
-
-      <div class="subtitle">
-        1번부터 30번까지 중에서 5명을 추첨합니다
-      </div>
-
-      <!-- 1~30번 표시 -->
-      <div class="numbers" id="numbers"></div>
-
-      <!-- 추첨 버튼 -->
-      <button class="draw-btn" onclick="drawNumbers()">
-        🎲 5명 추첨하기
-      </button>
-
-      <!-- 결과 -->
-      <div class="result" id="result">
-        <div class="result-title">
-          🎉 오늘의 청소당번
+<div class="container">
+    <h1>QR 코드 스캐너 & 커스텀 생성기</h1>
+    
+    <div class="app-grid">
+        <!-- 왼쪽: 클립보드 이미지 붙여넣어 QR 읽기 -->
+        <div class="card">
+            <h2>QR 이미지 읽기</h2>
+            <div class="paste-zone" id="pasteZone" tabindex="0">
+                <p>💡 이 영역을 클릭하고<br><b>Ctrl + V</b> 로 이미지를 붙여넣으세요</p>
+            </div>
+            <div class="result-box" id="readResult">
+                <!-- 결과 링크가 여기에 표시됩니다 -->
+            </div>
         </div>
 
-        <div class="winners" id="winners"></div>
+        <!-- 오른쪽: URL 입력하여 QR 커스텀 생성하기 -->
+        <div class="card">
+            <h2>QR 코드 생성 & 커스텀</h2>
+            
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="https://example.com" />
+                <button id="generateBtn">생성</button>
+            </div>
 
-        <button class="reset-btn" onclick="reset()">
-          다시 추첨
-        </button>
-      </div>
+            <!-- 커스텀 설정 패널 -->
+            <div class="custom-options">
+                <div class="option-row">
+                    <label>🎨 QR / 배경 색상</label>
+                    <div class="color-inputs">
+                        <div class="color-picker-wrapper">
+                            <span>QR:</span>
+                            <input type="color" id="dotsColor" value="#000000" />
+                        </div>
+                        <div class="color-picker-wrapper">
+                            <span>배경:</span>
+                            <input type="color" id="bgColor" value="#ffffff" />
+                        </div>
+                    </div>
+                </div>
 
+                <div class="option-row" style="align-items: flex-start;">
+                    <label style="margin-top: 4px;">🖼️ 중앙 로고 추가</label>
+                    <div class="logo-input-wrapper">
+                        <input type="file" id="logoInput" accept="image/*" style="font-size: 0.8rem; width: 160px;" />
+                        <div class="logo-paste-zone" id="logoPasteZone" tabindex="0">
+                            📋 클릭 후 Ctrl+V 붙여넣기
+                        </div>
+                        <span class="logo-status" id="logoStatus">✅ 로고 적용됨</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qr-output" id="qrCodeContainer">
+                <span style="color: #a0aec0; font-size: 0.85rem; text-align: center;">QR 코드가 여기에 생성됩니다</span>
+            </div>
+            
+            <!-- 복사 & 다운로드 버튼 영역 -->
+            <div class="qr-action-btns" id="actionBtns" style="display: none;">
+                <button class="btn-action btn-copy" id="copyQrBtn">📋 이미지 복사</button>
+                <button class="btn-action btn-download" id="downloadQrBtn">💾 이미지 저장</button>
+            </div>
+            <div id="actionStatus" style="min-height: 20px;"></div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const numbersContainer = document.getElementById("numbers");
-    const result = document.getElementById("result");
-    const winnersContainer = document.getElementById("winners");
+    <!-- 하단 전체 초기화 버튼 -->
+    <button class="reset-btn" id="resetBtn">🔄 초기화</button>
+</div>
 
-    // 1번~30번 표시
-    for (let i = 1; i <= 30; i++) {
-      const number = document.createElement("div");
+<script>
+    // ==========================================
+    // 1. QR 이미지 붙여넣기 (Ctrl+V) 스캔 로직
+    // ==========================================
+    const pasteZone = document.getElementById('pasteZone');
+    const readResult = document.getElementById('readResult');
 
-      number.className = "number";
-      number.id = "number-" + i;
-      number.textContent = i + "번";
+    pasteZone.addEventListener('paste', handleScanPaste);
 
-      numbersContainer.appendChild(number);
+    function handleScanPaste(e) {
+        e.stopPropagation();
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let imageFound = false;
+
+        for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                imageFound = true;
+                const blob = item.getAsFile();
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        scanQRCodeFromImage(img);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(blob);
+                break;
+            }
+        }
+
+        if (!imageFound) {
+            readResult.innerHTML = `<span class="error-msg">클립보드에 이미지 데이터가 없습니다.</span>`;
+        }
     }
 
-    // 1~30 중 랜덤으로 5개 추첨
-    function drawNumbers() {
+    function scanQRCodeFromImage(img) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0, img.width, img.height);
 
-      // 1~30 배열 생성
-      let numbers = [];
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-      for (let i = 1; i <= 30; i++) {
-        numbers.push(i);
-      }
-
-      // 배열 섞기
-      for (let i = numbers.length - 1; i > 0; i--) {
-        const random = Math.floor(Math.random() * (i + 1));
-
-        [numbers[i], numbers[random]] =
-          [numbers[random], numbers[i]];
-      }
-
-      // 앞에서 5개 선택
-      const winners = numbers.slice(0, 5);
-
-      // 작은 번호부터 정렬
-      winners.sort((a, b) => a - b);
-
-      // 기존 선택 초기화
-      document.querySelectorAll(".number").forEach(el => {
-        el.classList.remove("selected");
-      });
-
-      winnersContainer.innerHTML = "";
-
-      // 선택된 번호 표시
-      winners.forEach((num, index) => {
-
-        setTimeout(() => {
-          document
-            .getElementById("number-" + num)
-            .classList.add("selected");
-        }, index * 150);
-
-        const winner = document.createElement("div");
-
-        winner.className = "winner";
-        winner.textContent = num + "번";
-
-        winnersContainer.appendChild(winner);
-      });
-
-      // 결과 표시
-      result.classList.add("show");
+        if (code) {
+            const url = code.data;
+            readResult.innerHTML = `
+                <p style="font-size:0.85rem; color:#4a5568; margin-bottom:5px;">인식된 내용:</p>
+                <p style="font-size:0.9rem; font-weight:bold; word-break:break-all;">${escapeHtml(url)}</p>
+                ${isValidUrl(url) 
+                    ? `<a href="${url}" target="_blank" class="result-link">해당 링크로 이동하기 🔗</a>` 
+                    : `<p class="error-msg">유효한 URL 형태가 아닙니다 (텍스트 내용만 추출됨).</p>`}
+            `;
+        } else {
+            readResult.innerHTML = `<span class="error-msg">QR 코드를 인식하지 못했습니다. 다른 이미지를 시도해보세요.</span>`;
+        }
     }
 
-    // 초기화
-    function reset() {
-      document.querySelectorAll(".number").forEach(el => {
-        el.classList.remove("selected");
-      });
+    // ==========================================
+    // 2. QR 코드 커스텀 생성 및 복사/다운로드 로직
+    // ==========================================
+    const urlInput = document.getElementById('urlInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    const actionBtns = document.getElementById('actionBtns');
+    const copyQrBtn = document.getElementById('copyQrBtn');
+    const downloadQrBtn = document.getElementById('downloadQrBtn');
+    const actionStatus = document.getElementById('actionStatus');
 
-      winnersContainer.innerHTML = "";
-      result.classList.remove("show");
+    // 커스텀 옵션 요소
+    const dotsColorInput = document.getElementById('dotsColor');
+    const bgColorInput = document.getElementById('bgColor');
+    const logoInput = document.getElementById('logoInput');
+    const logoPasteZone = document.getElementById('logoPasteZone');
+    const logoStatus = document.getElementById('logoStatus');
+
+    let qrCodeStyling = null;
+    let uploadedLogoUrl = "";
+
+    // 파일 선택으로 로고 입력 시
+    logoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setLogoImage(event.target.result);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setLogoImage("");
+        }
+    });
+
+    // 붙여넣기로 로고 입력 시
+    logoPasteZone.addEventListener('paste', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        
+        for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                const blob = item.getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    logoInput.value = ""; // 파일선택 초기화
+                    setLogoImage(event.target.result);
+                };
+                reader.readAsDataURL(blob);
+                break;
+            }
+        }
+    });
+
+    function setLogoImage(url) {
+        uploadedLogoUrl = url;
+        if (url) {
+            logoStatus.style.display = 'block';
+        } else {
+            logoStatus.style.display = 'none';
+        }
+        if (qrCodeStyling && urlInput.value.trim()) generateQRCode();
     }
-  </script>
+
+    // 색상 변경 시 실시간 반영
+    [dotsColorInput, bgColorInput].forEach(el => {
+        el.addEventListener('change', () => {
+            if (qrCodeStyling && urlInput.value.trim()) generateQRCode();
+        });
+    });
+
+    generateBtn.addEventListener('click', generateQRCode);
+    urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') generateQRCode();
+    });
+
+    function generateQRCode() {
+        const text = urlInput.value.trim();
+
+        if (!text) {
+            alert('URL 또는 텍스트를 입력해주세요.');
+            return;
+        }
+
+        qrCodeContainer.innerHTML = '';
+        actionStatus.innerHTML = '';
+
+        // qr-code-styling 설정
+        const qrOptions = {
+            width: 160,
+            height: 160,
+            type: "svg",
+            data: text,
+            image: uploadedLogoUrl || undefined,
+            dotsOptions: {
+                color: dotsColorInput.value,
+                type: "square"
+            },
+            backgroundOptions: {
+                color: bgColorInput.value,
+            },
+            imageOptions: {
+                crossOrigin: "anonymous",
+                margin: 4,
+                imageSize: 0.3
+            }
+        };
+
+        qrCodeStyling = new QRCodeStyling(qrOptions);
+        qrCodeStyling.append(qrCodeContainer);
+
+        actionBtns.style.display = 'flex';
+    }
+
+    // Canvas/Blob 추출 헬퍼 함수
+    async function getQrBlob() {
+        if (!qrCodeStyling) return null;
+        return await qrCodeStyling.getRawData("png");
+    }
+
+    // 2-1. 클립보드에 QR 이미지 복사
+    copyQrBtn.addEventListener('click', async () => {
+        try {
+            const blob = await getQrBlob();
+            if (!blob) return;
+
+            await navigator.clipboard.write([
+                new ClipboardItem({ [blob.type]: blob })
+            ]);
+            
+            actionStatus.innerHTML = `<span class="success-msg">✅ 클립보드에 이미지 복사 완료!</span>`;
+            setTimeout(() => { actionStatus.innerHTML = ''; }, 3000);
+        } catch (err) {
+            console.error('복사 실패:', err);
+            actionStatus.innerHTML = `<span class="error-msg">❌ 이미지 복사에 실패했습니다.</span>`;
+        }
+    });
+
+    // 2-2. QR 이미지 파일 다운로드
+    downloadQrBtn.addEventListener('click', async () => {
+        if (!qrCodeStyling) return;
+
+        try {
+            await qrCodeStyling.download({ name: "qrcode", extension: "png" });
+            actionStatus.innerHTML = `<span class="success-msg">💾 다운로드가 시작되었습니다.</span>`;
+            setTimeout(() => { actionStatus.innerHTML = ''; }, 3000);
+        } catch (err) {
+            console.error('다운로드 실패:', err);
+        }
+    });
+
+    // ==========================================
+    // 3. 전체 초기화 기능
+    // ==========================================
+    const resetBtn = document.getElementById('resetBtn');
+
+    resetBtn.addEventListener('click', resetAll);
+
+    function resetAll() {
+        // 1. QR 스캔 영역 초기화
+        readResult.innerHTML = '';
+
+        // 2. QR 생성 및 커스텀 영역 초기화
+        urlInput.value = '';
+        dotsColorInput.value = '#000000';
+        bgColorInput.value = '#ffffff';
+        logoInput.value = '';
+        setLogoImage('');
+
+        qrCodeContainer.innerHTML = `<span style="color: #a0aec0; font-size: 0.85rem; text-align: center;">QR 코드가 여기에 생성됩니다</span>`;
+        actionBtns.style.display = 'none';
+        actionStatus.innerHTML = '';
+        qrCodeStyling = null;
+    }
+
+    // 유틸리티 함수
+    function isValidUrl(string) {
+        try {
+            const url = new URL(string);
+            return url.protocol === "http:" || url.protocol === "https:";
+        } catch (_) {
+            return false;  
+        }
+    }
+
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
 
 </body>
 </html>
-```
