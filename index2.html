@@ -1,0 +1,1856 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>부흥고 급식표</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, "Noto Sans KR", sans-serif;
+    background: #f5f7fb;
+    color: #222;
+}
+
+header {
+    background: white;
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.header-inner {
+    max-width: 1200px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.school-name {
+    color: #666;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.settings-btn {
+    border: none;
+    background: #f1f3f5;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    font-size: 21px;
+    cursor: pointer;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 25px auto;
+    padding: 0 15px;
+}
+
+.top-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.view-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.view-btn,
+.nav-btn {
+    border: none;
+    background: white;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.08);
+}
+
+.view-btn.active {
+    background: #222;
+    color: white;
+}
+
+.period-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.period-title {
+    min-width: 180px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.week-table {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.day-card {
+    background: white;
+    border-radius: 15px;
+    min-height: 300px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    position: relative;
+}
+
+.day-card.today {
+    outline: 3px solid #222;
+}
+
+.day-card.favorite {
+    background: #fffdf0;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.date {
+    font-weight: bold;
+}
+
+.favorite-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 21px;
+    padding: 0;
+}
+
+.menu-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.menu-item {
+    padding: 7px 0;
+    line-height: 1.45;
+    font-size: 14px;
+}
+
+.allergy-warning {
+    background: #fff0f0;
+    color: #d32f2f;
+    border-radius: 7px;
+    padding: 3px 6px;
+    font-size: 11px;
+    margin-left: 4px;
+    font-weight: bold;
+}
+
+.meal-type {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 7px;
+}
+
+.no-meal {
+    color: #999;
+    text-align: center;
+    padding-top: 40px;
+}
+
+.month-table-wrapper {
+    background: white;
+    border-radius: 15px;
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+
+.month-table {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.month-table th {
+    background: #f1f3f5;
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+
+.month-table td {
+    vertical-align: top;
+    height: 190px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background: white;
+}
+
+.month-date {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.month-date.today {
+    display: inline-block;
+    background: #222;
+    color: white;
+    border-radius: 50%;
+    min-width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+}
+
+.month-date.favorite-date {
+    color: #d49b00;
+}
+
+.month-menu {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.month-menu div {
+    margin-bottom: 4px;
+}
+
+.empty-cell {
+    background: #fafafa !important;
+}
+
+.loading {
+    text-align: center;
+    padding: 70px 20px;
+    color: #777;
+}
+
+/* 알레르기 설정창 */
+.modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-bg.show {
+    display: flex;
+}
+
+.modal {
+    background: white;
+    width: min(500px, calc(100% - 30px));
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 18px;
+    padding: 22px;
+}
+
+.modal h2 {
+    margin-top: 0;
+}
+
+.allergy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.allergy-label {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 9px;
+    cursor: pointer;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.modal-buttons button {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 9px;
+    cursor: pointer;
+}
+
+.confirm-btn {
+    background: #222;
+    color: white;
+}
+
+.cancel-btn {
+    background: #eee;
+}
+
+@media (max-width: 700px) {
+    .week-table {
+        display: flex;
+        overflow-x: auto;
+    }
+
+    .day-card {
+        min-width: 250px;
+    }
+
+    .period-title {
+        min-width: 140px;
+        font-size: 17px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+        <div>
+            <h1>🍚 부흥고 급식표</h1>
+            <div class="school-name">부흥고등학교</div>
+        </div>
+
+        <button class="settings-btn" onclick="openAllergyModal()">
+            ⚙️
+        </button>
+    </div>
+</header>
+
+
+<div class="container">
+
+    <div class="top-controls">
+
+        <div class="view-buttons">
+            <button id="weekBtn"
+                    class="view-btn active"
+                    onclick="changeView('week')">
+                주간
+            </button>
+
+            <button id="monthBtn"
+                    class="view-btn"
+                    onclick="changeView('month')">
+                월간
+            </button>
+        </div>
+
+
+        <div class="period-control">
+
+            <button class="nav-btn" onclick="movePeriod(-1)">
+                ◀
+            </button>
+
+            <div id="periodTitle"
+                 class="period-title">
+                불러오는 중...
+            </div>
+
+            <button class="nav-btn" onclick="movePeriod(1)">
+                ▶
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div id="content">
+        <div class="loading">
+            급식 정보를 불러오는 중...
+        </div>
+    </div>
+
+</div>
+
+
+<!-- 알레르기 설정 -->
+<div id="allergyModal" class="modal-bg">
+
+    <div class="modal">
+
+        <h2>⚙️ 알레르기 설정</h2>
+
+        <p>
+            선택한 알레르기 성분이 포함된 메뉴를 표시합니다.
+        </p>
+
+        <div class="allergy-grid">
+
+            <label class="allergy-label">
+                <input type="checkbox" value="1">
+                ① 난류
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="2">
+                ② 우유
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="3">
+                ③ 메밀
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="4">
+                ④ 땅콩
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="5">
+                ⑤ 대두
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="6">
+                ⑥ 밀
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="7">
+                ⑦ 고등어
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="8">
+                ⑧ 게
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="9">
+                ⑨ 새우
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="10">
+                ⑩ 돼지고기
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="11">
+                ⑪ 복숭아
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="12">
+                ⑫ 토마토
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="13">
+                ⑬ 아황산류
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="14">
+                ⑭ 호두
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="15">
+                ⑮ 닭고기
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="16">
+                ⑯ 쇠고기
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="17">
+                ⑰ 오징어
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="18">
+                ⑱ 조개류
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="19">
+                ⑲ 잣
+            </label>
+
+            <label class="allergy-label">
+                <input type="checkbox" value="seafood">
+                🐟 해산물 전체
+            </label>
+
+        </div>
+
+
+        <div class="modal-buttons">
+
+            <button class="cancel-btn"
+                    onclick="closeAllergyModal()">
+                취소
+            </button>
+
+            <button class="confirm-btn"
+                    onclick="saveAllergies()">
+                확인
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   기본 설정
+===================================================== */
+
+const API_URL =
+    "https://open.neis.go.kr/hub/mealServiceDietInfo";
+
+const ATPT_OFCDC_SC_CODE = "J10";
+const SD_SCHUL_CODE = "7530074";
+
+
+/* =====================================================
+   상태
+===================================================== */
+
+let currentView = "week";
+let currentDate = new Date();
+
+let mealData = {};
+
+let favorites =
+    JSON.parse(
+        localStorage.getItem("favorites") || "[]"
+    );
+
+let selectedAllergies =
+    JSON.parse(
+        localStorage.getItem("allergies") || "[]"
+    );
+
+
+/* =====================================================
+   날짜 함수
+===================================================== */
+
+function pad(n) {
+    return String(n).padStart(2, "0");
+}
+
+
+function apiDate(date) {
+
+    return (
+        date.getFullYear() +
+        pad(date.getMonth() + 1) +
+        pad(date.getDate())
+    );
+
+}
+
+
+function displayDate(date) {
+
+    return (
+        date.getFullYear() +
+        "-" +
+        pad(date.getMonth() + 1) +
+        "-" +
+        pad(date.getDate())
+    );
+
+}
+
+
+function koreanDate(date) {
+
+    const days =
+        ["일", "월", "화", "수", "목", "금", "토"];
+
+    return (
+        `${date.getMonth() + 1}월 ` +
+        `${date.getDate()}일 ` +
+        `(${days[date.getDay()]})`
+    );
+
+}
+
+
+function getText(parent, selector) {
+
+    const el =
+        parent.querySelector(selector);
+
+    return el ? el.textContent.trim() : "";
+
+}
+
+
+/* =====================================================
+   메뉴 파싱
+===================================================== */
+
+function parseMenu(raw) {
+
+    if (!raw) return [];
+
+    return raw
+
+        // <br>을 줄바꿈으로 변환
+        .replace(/<br\s*\/?>/gi, "\n")
+
+        .split("\n")
+
+        .map(item => item.trim())
+
+        .filter(Boolean)
+
+        .map(item => {
+
+            /*
+                예:
+                김치찌개(5.6.9.10)
+
+                → 메뉴 이름과
+                  알레르기 번호 분리
+            */
+
+            const match =
+                item.match(
+                    /\(([\d.\s]+)\)\s*$/
+                );
+
+            let allergyNumbers = [];
+
+            if (match) {
+
+                allergyNumbers =
+                    match[1]
+                        .split(".")
+                        .map(x => x.trim())
+                        .filter(Boolean);
+
+            }
+
+            const text =
+                item
+                    .replace(
+                        /\s*\([\d.\s]+\)\s*$/,
+                        ""
+                    )
+                    .trim();
+
+            return {
+                text,
+                allergyNumbers
+            };
+
+        });
+
+}
+
+
+/* =====================================================
+   API에서 하루 급식 가져오기
+===================================================== */
+
+async function fetchDayMeals(date) {
+
+    const ymd = apiDate(date);
+
+    const url =
+        `${API_URL}` +
+        `?ATPT_OFCDC_SC_CODE=${ATPT_OFCDC_SC_CODE}` +
+        `&SD_SCHUL_CODE=${SD_SCHUL_CODE}` +
+        `&MLSV_YMD=${ymd}`;
+
+    const response =
+        await fetch(url);
+
+    if (!response.ok) {
+        throw new Error("API 요청 실패");
+    }
+
+    const text =
+        await response.text();
+
+    const parser =
+        new DOMParser();
+
+    const xml =
+        parser.parseFromString(
+            text,
+            "application/xml"
+        );
+
+    const rows =
+        xml.querySelectorAll(
+            "mealServiceDietInfo row"
+        );
+
+    const result = [];
+
+    rows.forEach(row => {
+
+        const menu =
+            getText(row, "DDISH_NM");
+
+        const mealType =
+            getText(row, "MMEAL_SC_NM");
+
+        if (!menu) return;
+
+        result.push({
+
+            mealType:
+                mealType || "중식",
+
+            menu:
+                parseMenu(menu)
+
+        });
+
+    });
+
+    return result;
+}
+
+
+/* =====================================================
+   ★ 월간 급식 가져오기
+   하루씩 MLSV_YMD를 요청한다.
+===================================================== */
+
+async function fetchMonthMeals(year, month) {
+
+    const result = {};
+
+    // 해당 월의 마지막 날짜
+    const lastDay =
+        new Date(
+            year,
+            month + 1,
+            0
+        ).getDate();
+
+
+    /*
+        예를 들어 2026년 9월이면
+
+        MLSV_YMD=20260901
+        MLSV_YMD=20260902
+        ...
+        MLSV_YMD=20260930
+
+        을 각각 요청한다.
+    */
+
+    for (
+        let day = 1;
+        day <= lastDay;
+        day++
+    ) {
+
+        const date =
+            new Date(
+                year,
+                month,
+                day
+            );
+
+        const key =
+            apiDate(date);
+
+
+        try {
+
+            const meals =
+                await fetchDayMeals(date);
+
+            if (meals.length > 0) {
+
+                result[key] = meals;
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                `${key} 급식 조회 실패`,
+                error
+            );
+
+        }
+
+    }
+
+    return result;
+}
+
+
+/* =====================================================
+   주간 급식 가져오기
+===================================================== */
+
+async function fetchWeekMeals(date) {
+
+    const day =
+        date.getDay();
+
+    /*
+        월요일 기준으로 맞춤
+    */
+
+    const diff =
+        day === 0
+            ? -6
+            : 1 - day;
+
+
+    const monday =
+        new Date(date);
+
+    monday.setDate(
+        date.getDate() + diff
+    );
+
+
+    const result = {};
+
+
+    /*
+        월~금
+    */
+
+    for (let i = 0; i < 5; i++) {
+
+        const d =
+            new Date(monday);
+
+        d.setDate(
+            monday.getDate() + i
+        );
+
+
+        const key =
+            apiDate(d);
+
+
+        try {
+
+            const meals =
+                await fetchDayMeals(d);
+
+            if (meals.length > 0) {
+
+                result[key] = meals;
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                `${key} 급식 조회 실패`,
+                error
+            );
+
+        }
+
+    }
+
+    return result;
+}
+
+
+/* =====================================================
+   알레르기 검사
+===================================================== */
+
+function hasSelectedAllergy(numbers) {
+
+    if (
+        !selectedAllergies ||
+        selectedAllergies.length === 0
+    ) {
+        return false;
+    }
+
+
+    for (const allergy of selectedAllergies) {
+
+        /*
+            해산물 전체
+            7 고등어
+            8 게
+            9 새우
+            17 오징어
+            18 조개류
+        */
+
+        if (allergy === "seafood") {
+
+            const seafood =
+                [
+                    "7",
+                    "8",
+                    "9",
+                    "17",
+                    "18"
+                ];
+
+            if (
+                numbers.some(
+                    n => seafood.includes(n)
+                )
+            ) {
+                return true;
+            }
+
+        } else {
+
+            if (
+                numbers.includes(allergy)
+            ) {
+                return true;
+            }
+
+        }
+
+    }
+
+    return false;
+}
+
+
+/* =====================================================
+   즐겨찾기
+===================================================== */
+
+function toggleFavorite(key) {
+
+    if (favorites.includes(key)) {
+
+        favorites =
+            favorites.filter(
+                x => x !== key
+            );
+
+    } else {
+
+        favorites.push(key);
+
+        requestNotification();
+
+    }
+
+
+    localStorage.setItem(
+        "favorites",
+        JSON.stringify(favorites)
+    );
+
+
+    renderCurrent();
+}
+
+
+function isFavorite(key) {
+
+    return favorites.includes(key);
+
+}
+
+
+/* =====================================================
+   알림 권한
+===================================================== */
+
+function requestNotification() {
+
+    if (
+        "Notification" in window &&
+        Notification.permission === "default"
+    ) {
+
+        Notification.requestPermission();
+
+    }
+
+}
+
+
+/* =====================================================
+   오늘 즐겨찾기 알림
+===================================================== */
+
+function checkFavoriteNotification() {
+
+    const today =
+        apiDate(new Date());
+
+
+    if (
+        !favorites.includes(today)
+    ) {
+        return;
+    }
+
+
+    const notified =
+        JSON.parse(
+            localStorage.getItem(
+                "notifiedFavorites"
+            ) || "[]"
+        );
+
+
+    if (
+        notified.includes(today)
+    ) {
+        return;
+    }
+
+
+    if (
+        "Notification" in window &&
+        Notification.permission === "granted"
+    ) {
+
+        new Notification(
+            "🍚 오늘의 급식",
+            {
+                body:
+                    "즐겨찾기한 오늘의 급식을 확인해보세요!"
+            }
+        );
+
+        notified.push(today);
+
+        localStorage.setItem(
+            "notifiedFavorites",
+            JSON.stringify(notified)
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   HTML 보안 처리
+===================================================== */
+
+function escapeHTML(text) {
+
+    return String(text)
+
+        .replace(/&/g, "&amp;")
+
+        .replace(/</g, "&lt;")
+
+        .replace(/>/g, "&gt;")
+
+        .replace(/"/g, "&quot;")
+
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* =====================================================
+   메뉴 HTML
+===================================================== */
+
+function createMenuHTML(meals) {
+
+    if (!meals || meals.length === 0) {
+
+        return `
+            <div class="no-meal">
+                급식 없음
+            </div>
+        `;
+
+    }
+
+
+    let html = "";
+
+
+    meals.forEach(meal => {
+
+        html += `
+            <div class="meal-type">
+                ${escapeHTML(meal.mealType)}
+            </div>
+        `;
+
+
+        html += `
+            <ul class="menu-list">
+        `;
+
+
+        meal.menu.forEach(item => {
+
+            const warning =
+                hasSelectedAllergy(
+                    item.allergyNumbers
+                );
+
+
+            html += `
+                <li class="menu-item">
+
+                    ${escapeHTML(item.text)}
+
+                    ${
+                        warning
+                        ? `<span class="allergy-warning">
+                            ⚠ 알레르기
+                           </span>`
+                        : ""
+                    }
+
+                </li>
+            `;
+
+        });
+
+
+        html += `
+            </ul>
+        `;
+
+    });
+
+
+    return html;
+}
+
+
+/* =====================================================
+   주간 화면
+===================================================== */
+
+async function renderWeek() {
+
+    showLoading();
+
+
+    const day =
+        currentDate.getDay();
+
+    const diff =
+        day === 0
+            ? -6
+            : 1 - day;
+
+
+    const monday =
+        new Date(currentDate);
+
+    monday.setDate(
+        currentDate.getDate() + diff
+    );
+
+
+    mealData =
+        await fetchWeekMeals(
+            currentDate
+        );
+
+
+    const friday =
+        new Date(monday);
+
+    friday.setDate(
+        monday.getDate() + 4
+    );
+
+
+    document.getElementById(
+        "periodTitle"
+    ).textContent =
+        `${monday.getMonth() + 1}/${monday.getDate()}` +
+        ` ~ ` +
+        `${friday.getMonth() + 1}/${friday.getDate()}`;
+
+
+    let html =
+        `<div class="week-table">`;
+
+
+    for (let i = 0; i < 5; i++) {
+
+        const date =
+            new Date(monday);
+
+        date.setDate(
+            monday.getDate() + i
+        );
+
+
+        const key =
+            apiDate(date);
+
+
+        const today =
+            key === apiDate(new Date());
+
+
+        const favorite =
+            isFavorite(key);
+
+
+        html += `
+
+            <div class="
+                day-card
+                ${today ? "today" : ""}
+                ${favorite ? "favorite" : ""}
+            ">
+
+                <div class="day-header">
+
+                    <div class="date">
+                        ${koreanDate(date)}
+                    </div>
+
+                    <button
+                        class="favorite-btn"
+                        onclick="toggleFavorite('${key}')"
+                    >
+                        ${favorite ? "★" : "☆"}
+                    </button>
+
+                </div>
+
+                ${createMenuHTML(
+                    mealData[key]
+                )}
+
+            </div>
+        `;
+
+    }
+
+
+    html += `</div>`;
+
+
+    document.getElementById(
+        "content"
+    ).innerHTML = html;
+
+}
+
+
+/* =====================================================
+   ★ 월간 달력 날짜 생성
+===================================================== */
+
+function getMonthWeeks(year, month) {
+
+    const first =
+        new Date(
+            year,
+            month,
+            1
+        );
+
+    const last =
+        new Date(
+            year,
+            month + 1,
+            0
+        );
+
+
+    /*
+        월요일 = 0
+        화요일 = 1
+        ...
+        금요일 = 4
+        토요일 = 5
+        일요일 = 6
+    */
+
+    const firstOffset =
+        (first.getDay() + 6) % 7;
+
+
+    const totalDays =
+        last.getDate();
+
+
+    const totalCells =
+        firstOffset + totalDays;
+
+
+    const weekCount =
+        Math.ceil(
+            totalCells / 7
+        );
+
+
+    const weeks =
+        Array.from(
+            { length: weekCount },
+            () => Array(5).fill(null)
+        );
+
+
+    /*
+        날짜를 월~금 칸에 배치
+    */
+
+    for (
+        let day = 1;
+        day <= totalDays;
+        day++
+    ) {
+
+        const date =
+            new Date(
+                year,
+                month,
+                day
+            );
+
+
+        const jsDay =
+            date.getDay();
+
+
+        // 토요일, 일요일 제외
+        if (
+            jsDay === 0 ||
+            jsDay === 6
+        ) {
+            continue;
+        }
+
+
+        const position =
+            firstOffset + day - 1;
+
+
+        const weekIndex =
+            Math.floor(
+                position / 7
+            );
+
+
+        const weekdayIndex =
+            jsDay - 1;
+
+
+        if (
+            weeks[weekIndex]
+        ) {
+
+            weeks[weekIndex][
+                weekdayIndex
+            ] = date;
+
+        }
+
+    }
+
+
+    return weeks;
+}
+
+
+/* =====================================================
+   ★ 월간 화면
+===================================================== */
+
+async function renderMonth() {
+
+    showLoading();
+
+
+    const year =
+        currentDate.getFullYear();
+
+    const month =
+        currentDate.getMonth();
+
+
+    document.getElementById(
+        "periodTitle"
+    ).textContent =
+        `${year}년 ${month + 1}월`;
+
+
+    /*
+        ★ 핵심 수정
+
+        월간 데이터를
+        MLSV_FROM_YMD / MLSV_TO_YMD로
+        한 번에 요청하지 않는다.
+
+        하루씩
+        MLSV_YMD=YYYYMMDD
+        방식으로 가져온다.
+    */
+
+    mealData =
+        await fetchMonthMeals(
+            year,
+            month
+        );
+
+
+    const weeks =
+        getMonthWeeks(
+            year,
+            month
+        );
+
+
+    let html = `
+
+        <div class="month-table-wrapper">
+
+            <table class="month-table">
+
+                <thead>
+
+                    <tr>
+                        <th>월</th>
+                        <th>화</th>
+                        <th>수</th>
+                        <th>목</th>
+                        <th>금</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+    `;
+
+
+    weeks.forEach(week => {
+
+        html += `<tr>`;
+
+
+        week.forEach(date => {
+
+            if (!date) {
+
+                html += `
+                    <td class="empty-cell"></td>
+                `;
+
+                return;
+            }
+
+
+            const key =
+                apiDate(date);
+
+
+            const meals =
+                mealData[key];
+
+
+            const today =
+                key === apiDate(new Date());
+
+
+            const favorite =
+                isFavorite(key);
+
+
+            let menuHTML = "";
+
+
+            if (
+                meals &&
+                meals.length > 0
+            ) {
+
+                meals.forEach(meal => {
+
+                    menuHTML += `
+                        <div>
+                            <strong>
+                                ${escapeHTML(
+                                    meal.mealType
+                                )}
+                            </strong>
+                        </div>
+                    `;
+
+
+                    meal.menu.forEach(item => {
+
+                        const warning =
+                            hasSelectedAllergy(
+                                item.allergyNumbers
+                            );
+
+
+                        menuHTML += `
+
+                            <div class="month-menu">
+
+                                ${escapeHTML(
+                                    item.text
+                                )}
+
+                                ${
+                                    warning
+                                    ? `<span class="allergy-warning">
+                                        ⚠
+                                       </span>`
+                                    : ""
+                                }
+
+                            </div>
+
+                        `;
+
+                    });
+
+                });
+
+            } else {
+
+                menuHTML = `
+                    <div class="no-meal">
+                        급식 없음
+                    </div>
+                `;
+
+            }
+
+
+            html += `
+
+                <td>
+
+                    <div
+                        class="
+                            month-date
+                            ${today ? "today" : ""}
+                            ${favorite ? "favorite-date" : ""}
+                        "
+                    >
+
+                        ${date.getDate()}일
+
+                        <button
+                            class="favorite-btn"
+                            onclick="toggleFavorite('${key}')"
+                        >
+                            ${favorite ? "★" : "☆"}
+                        </button>
+
+                    </div>
+
+                    ${menuHTML}
+
+                </td>
+
+            `;
+
+        });
+
+
+        html += `</tr>`;
+
+    });
+
+
+    html += `
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    `;
+
+
+    document.getElementById(
+        "content"
+    ).innerHTML = html;
+
+}
+
+
+/* =====================================================
+   화면 전환
+===================================================== */
+
+function changeView(view) {
+
+    currentView = view;
+
+
+    document
+        .getElementById("weekBtn")
+        .classList.toggle(
+            "active",
+            view === "week"
+        );
+
+
+    document
+        .getElementById("monthBtn")
+        .classList.toggle(
+            "active",
+            view === "month"
+        );
+
+
+    renderCurrent();
+
+}
+
+
+/* =====================================================
+   이전 / 다음
+===================================================== */
+
+function movePeriod(amount) {
+
+    if (currentView === "week") {
+
+        currentDate =
+            new Date(currentDate);
+
+        currentDate.setDate(
+            currentDate.getDate() +
+            amount * 7
+        );
+
+    } else {
+
+        currentDate =
+            new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() +
+                amount,
+                1
+            );
+
+    }
+
+
+    renderCurrent();
+
+}
+
+
+/* =====================================================
+   현재 화면 렌더링
+===================================================== */
+
+async function renderCurrent() {
+
+    try {
+
+        if (currentView === "week") {
+
+            await renderWeek();
+
+        } else {
+
+            await renderMonth();
+
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "content"
+        ).innerHTML = `
+
+            <div class="loading">
+
+                ❌ 급식 정보를 불러오지 못했습니다.
+
+                <br><br>
+
+                인터넷 연결 또는 NEIS API를 확인해주세요.
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   알레르기 설정창
+===================================================== */
+
+function openAllergyModal() {
+
+    const modal =
+        document.getElementById(
+            "allergyModal"
+        );
+
+
+    const checkboxes =
+        modal.querySelectorAll(
+            "input[type=checkbox]"
+        );
+
+
+    checkboxes.forEach(cb => {
+
+        cb.checked =
+            selectedAllergies.includes(
+                cb.value
+            );
+
+    });
+
+
+    modal.classList.add("show");
+
+}
+
+
+function closeAllergyModal() {
+
+    document
+        .getElementById("allergyModal")
+        .classList.remove("show");
+
+}
+
+
+function saveAllergies() {
+
+    const checkboxes =
+        document.querySelectorAll(
+            "#allergyModal input[type=checkbox]"
+        );
+
+
+    selectedAllergies = [];
+
+
+    checkboxes.forEach(cb => {
+
+        if (cb.checked) {
+
+            selectedAllergies.push(
+                cb.value
+            );
+
+        }
+
+    });
+
+
+    localStorage.setItem(
+        "allergies",
+        JSON.stringify(
+            selectedAllergies
+        )
+    );
+
+
+    closeAllergyModal();
+
+
+    renderCurrent();
+
+}
+
+
+/* =====================================================
+   로딩
+===================================================== */
+
+function showLoading() {
+
+    document.getElementById(
+        "content"
+    ).innerHTML = `
+
+        <div class="loading">
+
+            🍚 급식 정보를 불러오는 중...
+
+        </div>
+
+    `;
+
+}
+
+
+/* =====================================================
+   초기 실행
+===================================================== */
+
+renderCurrent();
+
+
+// 페이지가 열려 있는 동안
+// 1분마다 즐겨찾기 확인
+setInterval(
+    checkFavoriteNotification,
+    60000
+);
+
+
+// 처음 실행할 때도 확인
+checkFavoriteNotification();
+
+</script>
+
+</body>
+</html>
+```
